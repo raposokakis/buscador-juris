@@ -5,14 +5,14 @@ const axios = require('axios');
 const https = require('https');
 const path = require('path');
 const puppeteer = require('puppeteer-extra');
-
-const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 const app = express();
 const PORT = process.env.PORT || 3001;
-const IS_PROD = process.env.NODE_ENV === 'production';
 app.use(cors());
 app.use(express.json());
 
@@ -21,20 +21,25 @@ let wafToken = null;
 let wafExpiry = 0;
 
 async function obterWafToken() {
-  console.log('[STF] Obtendo token WAF (abre Chrome por ~15s)...');
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: IS_PROD ? '/usr/bin/google-chrome-stable' : undefined,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process',
-    ],
-  });
+  console.log('[STF] Obtendo token WAF...');
+
+  let launchOptions;
+  if (IS_PROD) {
+    const chromium = require('@sparticuz/chromium');
+    launchOptions = {
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    };
+  } else {
+    launchOptions = {
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    };
+  }
+
+  const browser = await puppeteer.launch(launchOptions);
   try {
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');

@@ -8,6 +8,7 @@
     "build": "cd ../frontend && npm install && npm run build"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^143.0.4",
     "axios": "^1.13.6",
     "cheerio": "^1.0.0",
     "cors": "^2.8.5",
